@@ -1,26 +1,77 @@
 import React, { Component } from 'react';
-import logo from './logo.svg';
+import { BrowserRouter as Router, Route, Link } from 'react-router-dom';
+
+
 import './App.css';
+import {
+  Users,
+  Groups,
+  Privileges,
+} from './components';
+
+import { Layout, Menu, Icon } from 'antd';
+
+const { Header, Sider, Content } = Layout;
+
 
 class App extends Component {
+
+  state = {
+    collapsed: false,
+  };
+
+  toggle = () => {
+    this.setState({
+      collapsed: !this.state.collapsed,
+    });
+  }
+
   render() {
     return (
-      <div className="App">
-        <header className="App-header">
-          <img src={logo} className="App-logo" alt="logo" />
-          <p>
-            Edit <code>src/App.js</code> and save to reload.
-          </p>
-          <a
-            className="App-link"
-            href="https://reactjs.org"
-            target="_blank"
-            rel="noopener noreferrer"
+      <Router>
+        <Layout>
+        <Sider
+          trigger={null}
+          collapsible
+          collapsed={this.state.collapsed}
+        >
+          <div className="logo" />
+          <Menu 
+            theme="dark" 
+            mode="inline" 
+            defaultSelectedKeys={['/users']}
           >
-            Learn React
-          </a>
-        </header>
-      </div>
+            <Menu.Item key="/users">
+              <Icon type="user" />
+              <Link to="/users"><Icon type="home" />Users</Link>
+            </Menu.Item>
+            <Menu.Item key="/groups">
+              <Icon type="team" />
+              <Link to="/groups"><Icon type="home" />Groups</Link>
+            </Menu.Item>
+            <Menu.Item key="/privileges">
+              <Icon type="file-protect" />
+              <Link to="/privileges"><Icon type="home" />Privileges</Link>
+            </Menu.Item>
+          </Menu>
+        </Sider>
+        <Layout>
+          <Header style={{ background: '#fff', padding: 0 }}>
+            <Icon
+              className="trigger"
+              type={this.state.collapsed ? 'menu-unfold' : 'menu-fold'}
+              onClick={this.toggle}
+            />
+          </Header>
+          <Content style={{ margin: '24px 16px', padding: 24, background: '#fff', minHeight: 280 }}>
+                <Route exact path="/" component={Users} />
+                <Route exact path="/users" component={Users} />
+                <Route exact path="/groups" component={Groups} />
+                <Route exact path="/privileges" component={Privileges} />
+          </Content>
+        </Layout>
+      </Layout>
+    </Router>
     );
   }
 }
