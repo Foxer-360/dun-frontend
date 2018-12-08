@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
-import { Table } from 'antd';
+import { Table, Button } from 'antd';
 import { adopt } from 'react-adopt';
-import { Query } from 'react-apollo';
+import { Query, Mutation } from 'react-apollo';
 import gql from 'graphql-tag';
 
 const USER_FRAMENT = `
@@ -19,32 +19,46 @@ const USER_FRAMENT = `
   }
 `;
 
+const GET_USERS = gql`
+  {
+    users {
+      ...UserParts
+    }
+  }
+  ${USER_FRAMENT}
+`;
+
 const UsersQueriesComposed = adopt({
   // addUser,
   // deleteUser,
-  // updateUser,
-  // getUsers
-  usersQueryRes: ({ render }) => <Query 
-    query={
+  deleteUser: ({ render }) => <Mutation
+    update={(cache, { data: { deleteUser } }) => {
+      const { users } = cache.readQuery({ query: GET_USERS });
+      cache.writeQuery({
+        query: GET_USERS,
+        data: { users: users.filter(user => user.id !== deleteUser.id) }
+      });
+    }}
+    mutation={
       gql`
-        ${USER_FRAMENT}
-        query {
-          users {
-            ...UserParts
+        mutation ($userId: ID!) {
+          deleteUser(where: {id: $userId}) {
+            id
           }
         }
       `
     }
   >
     {(data) => render(data)}
+  </Mutation>,
+  // updateUser,
+  // getUsers
+  usersQueryRes: ({ render }) => <Query 
+    query={GET_USERS}
+  >
+    {(data) => render(data)}
   </Query>
 });
-
-const columns = [
-  { title: 'Name', dataIndex: 'name', key: 'name' },
-  { title: 'Action', dataIndex: '', key: 'x', render: () => <a href="javascript:;">Delete</a> },
-];
-
 
 
 class Users extends Component {
@@ -55,7 +69,8 @@ class Users extends Component {
         loading: usersLoading,
         error: usersError,
         data: usersData
-      }
+      },
+      deleteUser
     }) => {
 
       if (usersLoading) return 'Loading...';
@@ -66,6 +81,25 @@ class Users extends Component {
         users
       } = usersData;
 
+      const usersTableColumns = [
+        { title: 'Name', dataIndex: 'name', key: 'name' },
+        { 
+          title: 'Action', 
+          dataIndex: '', 
+          key: 'x', 
+          render: (...args) => {
+            const { 1: user } = args;
+            return (<Button 
+              type="danger"
+              onClick={() => deleteUser({ variables: { userId: user.id } })}
+            >
+              Delete
+            </Button>) 
+          }
+        },
+      ];
+      
+
       const usersTableData = users.map(({ id, name }) => ({ 
         id, 
         key: id, 
@@ -73,7 +107,7 @@ class Users extends Component {
       }));
 
       return <Table
-        columns={columns}
+        columns={usersTableColumns}
         expandedRowRender={record => <p style={{ margin: 0 }}>
           {record.description}
         </p>}
