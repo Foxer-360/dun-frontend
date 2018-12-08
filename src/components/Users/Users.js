@@ -1,8 +1,10 @@
 import React, { Component } from 'react';
-import { Table, Button } from 'antd';
+import { Table, Button, Input, Icon, Form } from 'antd';
 import { adopt } from 'react-adopt';
 import { Query, Mutation } from 'react-apollo';
 import gql from 'graphql-tag';
+
+const FormItem = Form.Item;
 
 const USER_FRAMENT = `
   fragment UserParts on User {
@@ -62,6 +64,16 @@ const UsersQueriesComposed = adopt({
 
 
 class Users extends Component {
+
+  constructor(props) {
+    super(props)
+
+    this.state = {
+      userFormsData: []
+    }
+
+  }
+
   render() {
     return <UsersQueriesComposed>
     {({
@@ -89,32 +101,90 @@ class Users extends Component {
           key: 'x', 
           render: (...args) => {
             const { 1: user } = args;
-            return (<Button 
-              type="danger"
-              onClick={() => deleteUser({ variables: { userId: user.id } })}
-            >
-              Delete
-            </Button>) 
+            if (user.id !== 'new') {
+              return (<Button 
+                type="danger"
+                onClick={() => deleteUser({ variables: { userId: user.id } })}
+              >
+                Delete
+              </Button>) 
+            }
+
+            if(this.state.userFormsData.some(({ id }) => id === user.id)) {
+              return (<Button 
+                type="primary"
+                onClick={() => deleteUser({ variables: { userId: user.id } })}
+              >
+                Create
+              </Button>) 
+            }
+
           }
         },
       ];
       
 
-      const usersTableData = users.map(({ id, name }) => ({ 
-        id, 
-        key: id, 
-        name 
-      }));
+      const usersTableData = [
+        ...users.map(({ id, name }) => ({ 
+          id, 
+          key: id, 
+          name 
+        })),
+        {
+          id: 'new',
+          key: 'new',
+          name: '+ New user'
+        }
+      ];
 
       return <Table
         columns={usersTableColumns}
-        expandedRowRender={record => <p style={{ margin: 0 }}>
-          {record.description}
-        </p>}
+        expandedRowRender={({ id: userId }) => {
+          if (userId === 'new') {
+          return (
+            <Form layout="inline" onSubmit={this.handleSubmit}>
+              <FormItem
+              >
+                <Input 
+                  onChange={this.onChange(userId, 'name')}
+                  prefix={
+                    <Icon 
+                      type="user" 
+                      style={{ color: 'rgba(0,0,0,.25)' }} 
+                    />} 
+                  placeholder="Username" 
+                />
+              </FormItem>
+            </Form>
+          );
+          }
+        }}
         dataSource={usersTableData}
       />
     }}
     </UsersQueriesComposed>;
+  }
+
+  onChange = (userId, fieldName) => ({ target: { value } }) => {
+    const { userFormsData } = this.state;
+
+    const existingUserFormData = userFormsData.find(({ id }) => userId === id);
+    console.log(existingUserFormData, userFormsData);
+    if (!existingUserFormData) {
+      console.log('here', [...userFormsData, { id: userId, [fieldName]: value }] );
+      this.setState({ userFormsData: [...userFormsData, { id: userId, [fieldName]: value }] });
+    } else {
+      console.log('here2');
+      this.setState({ 
+        userFormsData: [...userFormsData.map(userFormData => {
+          if(userFormData) {
+            return {...userFormData, [fieldName]: value}
+          }
+
+          return userFormsData;
+        })]
+      });
+    }
   }
 }
 
