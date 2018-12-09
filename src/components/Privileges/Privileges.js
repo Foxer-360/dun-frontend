@@ -8,7 +8,12 @@ const { Option } = Select;
 
 const FormItem = Form.Item;
 
-const PRIVELEGE_FRAMENT = `
+const camelCaseToSentence = (camelCase) => {
+  const result = camelCase.replace( /([A-Z])/g, " $1" );
+  return result.charAt(0).toUpperCase() + result.slice(1); // capitalize the first letter - as an example.
+}
+
+const USER_FRAMENT = `
   fragment PrivilegeParts on Privilege {
     id
     name
@@ -16,16 +21,17 @@ const PRIVELEGE_FRAMENT = `
       id
       name
     }
+    actionTypes
   }
 `;
 
-const GET_PRIVELEGES = gql`
+const GET_USERS = gql`
   {
     privileges {
       ...PrivilegeParts
     }
   }
-  ${PRIVELEGE_FRAMENT}
+  ${USER_FRAMENT}
 `;
 
 const ACTION_TYPES = gql`
@@ -47,13 +53,8 @@ const ACTION_TYPES = gql`
   }
 `;
 
-const camelCaseToSentence = (camelCase) => {
-  const result = camelCase.replace( /([A-Z])/g, " $1" );
-  return result.charAt(0).toUpperCase() + result.slice(1); // capitalize the first letter - as an example.
-}
-
-const CREATE_PRIVELEGE = gql`
-${PRIVELEGE_FRAMENT}
+const CREATE_USER = gql`
+${USER_FRAMENT}
 mutation (
     $name: String!
     $actionTypes: [String!]!
@@ -64,25 +65,56 @@ mutation (
 }
 `;
 
+const UPDATE_USER = gql`
+${USER_FRAMENT}
+mutation (
+    $name: String!
+    $actionTypes: [String!]!
+    $privilegeId: ID!
+) {
+  updatePrivilege(data: { name: $name, actionTypes: { set: $actionTypes } }, where: { id: $privilegeId }) {
+    ...PrivilegeParts
+  }
+}
+`;
+
 const PrivilegesQueriesComposed = adopt({
   createPrivilege: ({ render }) => <Mutation
     update={(cache, { data: { createPrivilege } }) => {
-      const { privileges } = cache.readQuery({ query: GET_PRIVELEGES });
+      const { privileges } = cache.readQuery({ query: GET_USERS });
 
       cache.writeQuery({
-        query: GET_PRIVELEGES,
+        query: GET_USERS,
         data: { privileges: privileges.concat(createPrivilege)}
       });
     }}
-    mutation={CREATE_PRIVELEGE}
+    mutation={CREATE_USER}
+  >
+    {(data) => render(data)}
+  </Mutation>,
+  updatePrivilege: ({ render }) => <Mutation
+    update={(cache, { data: { updatePrivilege } }) => {
+      const { privileges } = cache.readQuery({ query: GET_USERS });
+      cache.writeQuery({
+        query: GET_USERS,
+        data: { privileges: privileges.map((privilege) => {
+          if(privilege.id === updatePrivilege.id) {
+            return updatePrivilege;
+          } else {
+            return privilege;
+          }
+        })}
+      });
+    }}
+    mutation={UPDATE_USER}
   >
     {(data) => render(data)}
   </Mutation>,
   deletePrivilege: ({ render }) => <Mutation
     update={(cache, { data: { deletePrivilege } }) => {
-      const { privileges } = cache.readQuery({ query: GET_PRIVELEGES });
+      const { privileges } = cache.readQuery({ query: GET_USERS });
       cache.writeQuery({
-        query: GET_PRIVELEGES,
+        query: GET_USERS,
         data: { privileges: privileges.filter(privilege => privilege.id !== deletePrivilege.id) }
       });
     }}
@@ -98,10 +130,9 @@ const PrivilegesQueriesComposed = adopt({
   >
     {(data) => render(data)}
   </Mutation>,
-  // updatePrivilege,
-  // getPrivileges
+  // updatePrivilege
   privilegesQueryRes: ({ render }) => <Query 
-    query={GET_PRIVELEGES}
+    query={GET_USERS}
   >
     {(data) => render(data)}
   </Query>,
@@ -139,6 +170,7 @@ class Privileges extends Component {
       },
       deletePrivilege,
       createPrivilege,
+      updatePrivilege
     }) => {
 
       if (privilegesLoading || actionTypesLoading) return 'Loading...';
@@ -168,22 +200,40 @@ class Privileges extends Component {
           key: 'x', 
           render: (...args) => {
             const { 1: privilege } = args;
-            if (privilege.id !== 'new') {
-              return (<Button 
-                type="danger"
-                onClick={() => deletePrivilege({ variables: { privilegeId: privilege.id } })}
-              >
-                Delete
-              </Button>) 
-            }
 
             const privilegeInState = this.state.privilegeFormsData.find(({ id }) => id === privilege.id);
+
+            if (privilege.id !== 'new') {
+              return (<>
+                <Button 
+                  type="danger"
+                  onClick={() => deletePrivilege({ variables: { privilegeId: privilege.id } })}
+                >
+                  Delete
+                </Button>
+                <Button
+                  disabled={!privilegeInState} 
+                  style={{ marginLeft: 10 }}
+                  type="primary"
+                  onClick={() => updatePrivilege({ variables: { privilegeId: privilege.id, ...privilege, ...privilegeInState } }).then(() => {
+                    const { privilegeFormsData } = this.state;
+  
+                    this.setState({ privilegeFormsData: privilegeFormsData.filter(privilegeFormData => privilegeFormData.id !== privilege.id) });
+                    })}
+                >
+                  Update
+                </Button>
+
+              </>) 
+            }
+
+
 
             if(privilegeInState) {
               return (<Button 
                 type="primary"
                 onClick={() => {
-                  createPrivilege({ variables: { name: privilegeInState.name, actionTypes: privilegeInState.actionTypes } }).then(() => {
+                  createPrivilege({ variables: { name: privilegeInState.name, actionTypes: privilegeInState.actionTypes || [] } }).then(() => {
                   const { privilegeFormsData } = this.state;
 
                   this.setState({ privilegeFormsData: privilegeFormsData.filter(privilegeFormData => privilegeFormData.id !== 'new') });
@@ -200,10 +250,9 @@ class Privileges extends Component {
       
 
       const privilegesTableData = [
-        ...privileges.map(({ id, name }) => ({ 
-          id, 
-          key: id, 
-          name 
+        ...privileges.map((privilege) => ({ 
+          key: privilege.id,
+          ...privilege 
         })),
         {
           id: 'new',
@@ -214,16 +263,17 @@ class Privileges extends Component {
 
       return <Table
         columns={privilegesTableColumns}
-        expandedRowRender={({ id: privilegeId }) => {
-          if (privilegeId === 'new') {
+        expandedRowRender={(privilege) => {
+          const privilegeInState = this.state.privilegeFormsData.find(({ id }) => id === privilege.id);
+
           return (
             <Form layout="inline" onSubmit={this.handleSubmit}>
               <FormItem
                 label={'Name:'}
               >
                 <Input 
-                  onChange={({ target: { value }}) => this.onChange(privilegeId, 'name')(value)}
-                  defaultValue={''}
+                  onChange={({ target: { value }}) => this.onChange(privilege.id, 'name')(value)}
+                  defaultValue={privilege.name}
                   prefix={
                     <Icon 
                       type="privilege" 
@@ -236,10 +286,11 @@ class Privileges extends Component {
                 label={'Permitted api actions:'}
               >
                 <Select
+                  value={(privilegeInState || privilege).actionTypes}
                   style={{ width: 300 }} 
                   mode="multiple" 
                   placeholder="Please select favourite colors"
-                  onChange={this.onChange(privilegeId, 'actionTypes')}
+                  onChange={this.onChange(privilege.id, 'actionTypes')}
                 >
                   {[...queriesTypes, ...mutationTypes].map(({ name }) => 
                   <Option 
@@ -253,7 +304,7 @@ class Privileges extends Component {
             </Form>
           );
           }
-        }}
+        }
         dataSource={privilegesTableData}
       />
     }}
@@ -264,7 +315,6 @@ class Privileges extends Component {
     const { privilegeFormsData } = this.state;
 
     const existingPrivilegeFormData = privilegeFormsData.find(({ id }) => privilegeId === id);
-    console.log(existingPrivilegeFormData, privilegeFormsData);
     if (!existingPrivilegeFormData) {
       this.setState({ privilegeFormsData: [...privilegeFormsData, { id: privilegeId, [fieldName]: value }] });
     } else {
