@@ -1,8 +1,10 @@
 import React, { Component } from 'react';
-import { Table, Button, Input, Icon, Form } from 'antd';
+import { Table, Button, Input, Icon, Form, Select } from 'antd';
 import { adopt } from 'react-adopt';
 import { Query, Mutation } from 'react-apollo';
 import gql from 'graphql-tag';
+
+const { Option } = Select;
 
 const FormItem = Form.Item;
 
@@ -11,10 +13,6 @@ const USER_FRAMENT = `
     id
     name
     privileges {
-      id
-      name
-    }
-    groups {
       id
       name
     }
@@ -30,12 +28,37 @@ const GET_USERS = gql`
   ${USER_FRAMENT}
 `;
 
+const ACTION_TYPES = gql`
+  {
+    __schema {
+      queryType {
+        name
+        fields {
+          name
+        }
+      }
+      mutationType {
+        name
+        fields {
+          name
+        }
+      }
+    }
+  }
+`;
+
+const camelCaseToSentence = (camelCase) => {
+  const result = camelCase.replace( /([A-Z])/g, " $1" );
+  return result.charAt(0).toUpperCase() + result.slice(1); // capitalize the first letter - as an example.
+}
+
 const CREATE_USER = gql`
 ${USER_FRAMENT}
 mutation (
     $name: String!
+    $actionTypes: [String!]!
 ) {
-  createUser(data: { name: $name}) {
+  createUser(data: { name: $name, actionTypes: { set: $actionTypes } }) {
     ...UserParts
   }
 }
@@ -81,6 +104,11 @@ const UsersQueriesComposed = adopt({
     query={GET_USERS}
   >
     {(data) => render(data)}
+  </Query>,
+  actionTypesQueryRes: ({ render }) => <Query
+    query={ACTION_TYPES}
+  >
+    {(data) => render(data)}
   </Query>
 });
 
@@ -104,17 +132,33 @@ class Users extends Component {
         error: usersError,
         data: usersData
       },
+      actionTypesQueryRes: {
+        loading: actionTypesLoading,
+        error: actionTypesError,
+        data: actionTypesData
+      },
       deleteUser,
-      createUser
+      createUser,
     }) => {
 
-      if (usersLoading) return 'Loading...';
+      if (usersLoading || actionTypesLoading) return 'Loading...';
 
-      if (usersError) return 'Error...';
+      if (usersError || actionTypesError) return 'Error...';
 
       const {
         users
       } = usersData;
+
+      const {
+        __schema: {
+          queryType: {
+            fields: queriesTypes
+          },
+          mutationType: {
+            fields: mutationTypes
+          }
+        }
+      } = actionTypesData;
 
       const usersTableColumns = [
         { title: 'Name', dataIndex: 'name', key: 'name' },
@@ -138,11 +182,13 @@ class Users extends Component {
             if(userInState) {
               return (<Button 
                 type="primary"
-                onClick={() => createUser({ variables: { name: userInState.name } }).then(() => {
-                  console.log('here');
+                onClick={() => {
+                  createUser({ variables: { name: userInState.name, actionTypes: userInState.actionTypes } }).then(() => {
                   const { userFormsData } = this.state;
+
                   this.setState({ userFormsData: userFormsData.filter(userFormData => userFormData.id !== 'new') });
-                })}
+                  })
+                }}
               >
                 Create
               </Button>) 
@@ -173,17 +219,37 @@ class Users extends Component {
           return (
             <Form layout="inline" onSubmit={this.handleSubmit}>
               <FormItem
+                label={'Name:'}
               >
                 <Input 
-                  onChange={this.onChange(userId, 'name')}
+                  onChange={({ target: { value }}) => this.onChange(userId, 'name')(value)}
                   defaultValue={''}
                   prefix={
                     <Icon 
                       type="user" 
                       style={{ color: 'rgba(0,0,0,.25)' }} 
                     />} 
+                    kind
                   placeholder="Username" 
                 />
+              </FormItem>
+              <FormItem
+                label={'Permitted api actions:'}
+              >
+                <Select
+                  style={{ width: 300 }} 
+                  mode="multiple" 
+                  placeholder="Please select favourite colors"
+                  onChange={this.onChange(userId, 'actionTypes')}
+                >
+                  {[...queriesTypes, ...mutationTypes].map(({ name }) => 
+                  <Option 
+                    key={name}
+                    value={name}
+                  >
+                    {camelCaseToSentence(name)}
+                  </Option>)}
+                </Select>
               </FormItem>
             </Form>
           );
@@ -195,7 +261,7 @@ class Users extends Component {
     </UsersQueriesComposed>;
   }
 
-  onChange = (userId, fieldName) => ({ target: { value } }) => {
+  onChange = (userId, fieldName) => (value) => {
     const { userFormsData } = this.state;
 
     const existingUserFormData = userFormsData.find(({ id }) => userId === id);
