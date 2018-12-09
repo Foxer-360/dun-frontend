@@ -8,6 +8,11 @@ const { Option } = Select;
 
 const FormItem = Form.Item;
 
+const camelCaseToSentence = (camelCase) => {
+  const result = camelCase.replace( /([A-Z])/g, " $1" );
+  return result.charAt(0).toUpperCase() + result.slice(1); // capitalize the first letter - as an example.
+}
+
 const USER_FRAMENT = `
   fragment UserParts on User {
     id
@@ -16,6 +21,7 @@ const USER_FRAMENT = `
       id
       name
     }
+    actionTypes
   }
 `;
 
@@ -47,11 +53,6 @@ const ACTION_TYPES = gql`
   }
 `;
 
-const camelCaseToSentence = (camelCase) => {
-  const result = camelCase.replace( /([A-Z])/g, " $1" );
-  return result.charAt(0).toUpperCase() + result.slice(1); // capitalize the first letter - as an example.
-}
-
 const CREATE_USER = gql`
 ${USER_FRAMENT}
 mutation (
@@ -59,6 +60,19 @@ mutation (
     $actionTypes: [String!]!
 ) {
   createUser(data: { name: $name, actionTypes: { set: $actionTypes } }) {
+    ...UserParts
+  }
+}
+`;
+
+const UPDATE_USER = gql`
+${USER_FRAMENT}
+mutation (
+    $name: String!
+    $actionTypes: [String!]!
+    $userId: ID!
+) {
+  updateUser(data: { name: $name, actionTypes: { set: $actionTypes } }, where: { id: $userId }) {
     ...UserParts
   }
 }
@@ -75,6 +89,24 @@ const UsersQueriesComposed = adopt({
       });
     }}
     mutation={CREATE_USER}
+  >
+    {(data) => render(data)}
+  </Mutation>,
+  updateUser: ({ render }) => <Mutation
+    update={(cache, { data: { updateUser } }) => {
+      const { users } = cache.readQuery({ query: GET_USERS });
+      cache.writeQuery({
+        query: GET_USERS,
+        data: { users: users.map((user) => {
+          if(user.id === updateUser.id) {
+            return updateUser;
+          } else {
+            return user;
+          }
+        })}
+      });
+    }}
+    mutation={UPDATE_USER}
   >
     {(data) => render(data)}
   </Mutation>,
@@ -98,8 +130,7 @@ const UsersQueriesComposed = adopt({
   >
     {(data) => render(data)}
   </Mutation>,
-  // updateUser,
-  // getUsers
+  // updateUser
   usersQueryRes: ({ render }) => <Query 
     query={GET_USERS}
   >
@@ -139,6 +170,7 @@ class Users extends Component {
       },
       deleteUser,
       createUser,
+      updateUser
     }) => {
 
       if (usersLoading || actionTypesLoading) return 'Loading...';
@@ -168,16 +200,34 @@ class Users extends Component {
           key: 'x', 
           render: (...args) => {
             const { 1: user } = args;
-            if (user.id !== 'new') {
-              return (<Button 
-                type="danger"
-                onClick={() => deleteUser({ variables: { userId: user.id } })}
-              >
-                Delete
-              </Button>) 
-            }
 
             const userInState = this.state.userFormsData.find(({ id }) => id === user.id);
+
+            if (user.id !== 'new') {
+              return (<>
+                <Button 
+                  type="danger"
+                  onClick={() => deleteUser({ variables: { userId: user.id } })}
+                >
+                  Delete
+                </Button>
+                <Button
+                  disabled={!userInState} 
+                  style={{ marginLeft: 10 }}
+                  type="primary"
+                  onClick={() => updateUser({ variables: { userId: user.id, ...user, ...userInState } }).then(() => {
+                    const { userFormsData } = this.state;
+  
+                    this.setState({ userFormsData: userFormsData.filter(userFormData => userFormData.id !== user.id) });
+                    })}
+                >
+                  Update
+                </Button>
+
+              </>) 
+            }
+
+
 
             if(userInState) {
               return (<Button 
@@ -200,10 +250,9 @@ class Users extends Component {
       
 
       const usersTableData = [
-        ...users.map(({ id, name }) => ({ 
-          id, 
-          key: id, 
-          name 
+        ...users.map((user) => ({ 
+          key: user.id,
+          ...user 
         })),
         {
           id: 'new',
@@ -214,16 +263,17 @@ class Users extends Component {
 
       return <Table
         columns={usersTableColumns}
-        expandedRowRender={({ id: userId }) => {
-          if (userId === 'new') {
+        expandedRowRender={(user) => {
+          const userInState = this.state.userFormsData.find(({ id }) => id === user.id);
+
           return (
             <Form layout="inline" onSubmit={this.handleSubmit}>
               <FormItem
                 label={'Name:'}
               >
                 <Input 
-                  onChange={({ target: { value }}) => this.onChange(userId, 'name')(value)}
-                  defaultValue={''}
+                  onChange={({ target: { value }}) => this.onChange(user.id, 'name')(value)}
+                  defaultValue={user.name}
                   prefix={
                     <Icon 
                       type="user" 
@@ -236,10 +286,11 @@ class Users extends Component {
                 label={'Permitted api actions:'}
               >
                 <Select
+                  value={(userInState || user).actionTypes}
                   style={{ width: 300 }} 
                   mode="multiple" 
                   placeholder="Please select favourite colors"
-                  onChange={this.onChange(userId, 'actionTypes')}
+                  onChange={this.onChange(user.id, 'actionTypes')}
                 >
                   {[...queriesTypes, ...mutationTypes].map(({ name }) => 
                   <Option 
@@ -253,7 +304,7 @@ class Users extends Component {
             </Form>
           );
           }
-        }}
+        }
         dataSource={usersTableData}
       />
     }}
@@ -264,7 +315,6 @@ class Users extends Component {
     const { userFormsData } = this.state;
 
     const existingUserFormData = userFormsData.find(({ id }) => userId === id);
-    console.log(existingUserFormData, userFormsData);
     if (!existingUserFormData) {
       this.setState({ userFormsData: [...userFormsData, { id: userId, [fieldName]: value }] });
     } else {
