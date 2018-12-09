@@ -30,9 +30,31 @@ const GET_USERS = gql`
   ${USER_FRAMENT}
 `;
 
+const CREATE_USER = gql`
+${USER_FRAMENT}
+mutation (
+    $name: String!
+) {
+  createUser(data: { name: $name}) {
+    ...UserParts
+  }
+}
+`;
+
 const UsersQueriesComposed = adopt({
-  // addUser,
-  // deleteUser,
+  createUser: ({ render }) => <Mutation
+    update={(cache, { data: { createUser } }) => {
+      const { users } = cache.readQuery({ query: GET_USERS });
+
+      cache.writeQuery({
+        query: GET_USERS,
+        data: { users: users.concat(createUser)}
+      });
+    }}
+    mutation={CREATE_USER}
+  >
+    {(data) => render(data)}
+  </Mutation>,
   deleteUser: ({ render }) => <Mutation
     update={(cache, { data: { deleteUser } }) => {
       const { users } = cache.readQuery({ query: GET_USERS });
@@ -82,7 +104,8 @@ class Users extends Component {
         error: usersError,
         data: usersData
       },
-      deleteUser
+      deleteUser,
+      createUser
     }) => {
 
       if (usersLoading) return 'Loading...';
@@ -110,10 +133,16 @@ class Users extends Component {
               </Button>) 
             }
 
-            if(this.state.userFormsData.some(({ id }) => id === user.id)) {
+            const userInState = this.state.userFormsData.find(({ id }) => id === user.id);
+
+            if(userInState) {
               return (<Button 
                 type="primary"
-                onClick={() => deleteUser({ variables: { userId: user.id } })}
+                onClick={() => createUser({ variables: { name: userInState.name } }).then(() => {
+                  console.log('here');
+                  const { userFormsData } = this.state;
+                  this.setState({ userFormsData: userFormsData.filter(userFormData => userFormData.id !== 'new') });
+                })}
               >
                 Create
               </Button>) 
@@ -133,7 +162,7 @@ class Users extends Component {
         {
           id: 'new',
           key: 'new',
-          name: '+ New user'
+          name: 'Create new user'
         }
       ];
 
@@ -147,6 +176,7 @@ class Users extends Component {
               >
                 <Input 
                   onChange={this.onChange(userId, 'name')}
+                  defaultValue={''}
                   prefix={
                     <Icon 
                       type="user" 
@@ -171,10 +201,8 @@ class Users extends Component {
     const existingUserFormData = userFormsData.find(({ id }) => userId === id);
     console.log(existingUserFormData, userFormsData);
     if (!existingUserFormData) {
-      console.log('here', [...userFormsData, { id: userId, [fieldName]: value }] );
       this.setState({ userFormsData: [...userFormsData, { id: userId, [fieldName]: value }] });
     } else {
-      console.log('here2');
       this.setState({ 
         userFormsData: [...userFormsData.map(userFormData => {
           if(userFormData) {
