@@ -183,7 +183,7 @@ class Users extends Component {
               return (<Button 
                 type="primary"
                 onClick={() => {
-                  createUser({ variables: { name: userInState.name, actionTypes: userInState.actionTypes } }).then(() => {
+                  createUser({ variables: { name: userInState.name, actionTypes: userInState.actionTypes || [] } }).then(() => {
                   const { userFormsData } = this.state;
 
                   this.setState({ userFormsData: userFormsData.filter(userFormData => userFormData.id !== 'new') });
@@ -228,8 +228,7 @@ class Users extends Component {
                     <Icon 
                       type="user" 
                       style={{ color: 'rgba(0,0,0,.25)' }} 
-                    />} 
-                    kind
+                    />}
                   placeholder="Username" 
                 />
               </FormItem>
