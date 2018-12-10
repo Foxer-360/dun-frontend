@@ -67,8 +67,13 @@ ${USER_FRAMENT}
 mutation (
     $name: String!
     $actionTypes: [String!]!
+    $privilegesToConnect: [PrivilegeWhereUniqueInput!]
 ) {
-  createUser(data: { name: $name, actionTypes: { set: $actionTypes } }) {
+  createUser(data: { 
+    name: $name,
+    actionTypes: { set: $actionTypes },
+    privileges: { connect: $privilegesToConnect }
+  }) {
     ...UserParts
   }
 }
@@ -246,7 +251,11 @@ class Users extends Component {
                   disabled={!userInState} 
                   style={{ marginLeft: 10 }}
                   type="primary"
-                  onClick={() => updateUser({ variables: { userId: user.id, ...user, ...userInState } }).then(() => {
+                  onClick={() => updateUser({ variables: { 
+                    userId: user.id,
+                    ...user,
+                    ...userInState
+                  } }).then(() => {
                     const { userFormsData } = this.state;
   
                     this.setState({ userFormsData: userFormsData.filter(userFormData => userFormData.id !== user.id) });
@@ -264,7 +273,8 @@ class Users extends Component {
               return (<Button 
                 type="primary"
                 onClick={() => {
-                  createUser({ variables: { name: userInState.name, actionTypes: userInState.actionTypes || [] } }).then(() => {
+
+                  createUser({ variables: { ...({ privileges: [], actionTypes: [] }), ...userInState } }).then(() => {
                   const { userFormsData } = this.state;
 
                   this.setState({ userFormsData: userFormsData.filter(userFormData => userFormData.id !== 'new') });
@@ -303,7 +313,7 @@ class Users extends Component {
                 label={'Name:'}
               >
                 <Input 
-                  onChange={({ target: { value }}) => this.onChange(user.id, 'name')(value)}
+                  onChange={({ target: { value }}) => this.onChange('name', user)(value)}
                   defaultValue={user.name}
                   prefix={
                     <Icon 
@@ -336,7 +346,7 @@ class Users extends Component {
                 label={'Roles'}
               >
                 <Select
-                  value={(userInState || user).privileges.map(({ id }) => id)}
+                  value={((userInState || user).privileges || []).map(({ id }) => id)}
                   style={{ width: 300 }} 
                   mode="multiple" 
                   placeholder="Please select favourite colors"
@@ -387,26 +397,32 @@ class Users extends Component {
 
   handlePrivilegesChange(userFormsData, newPrivileges, user) {
 
+    const userPrivileges = (user && user.privileges) || [];
+
     const {
       privilegesToConnect,
       privilegesToDisconnect
     } = {
       privilegesToConnect: newPrivileges
         .map(({ id }) => id)
-        .filter(privilegeId => !user.privileges
+        .filter(privilegeId => !userPrivileges
         .some(({ id }) => id !== privilegeId ))
         .map((id) => ({ id })),
-      privilegesToDisconnect: user.privileges
+      privilegesToDisconnect: userPrivileges
         .filter(({ id }) => 
           !newPrivileges.map(({ id }) => id)
-            .some(id => user.privileges
-              .map(({ id }) => id)
+            .some(id => (userPrivileges
+              .map(({ id }) => id).includes(id)
             )
-        )
+        ))
         .map(({ id }) => ({ id }))
     };
-    
-    console.log(newPrivileges);
+    console.log(userFormsData);
+    console.log(JSON.stringify({
+      privilegesToConnect,
+      privilegesToDisconnect,
+      newPrivileges
+    }));
 
     const existingUserFormData = userFormsData.find(({ id }) => user.id === id);
     if (!existingUserFormData) {

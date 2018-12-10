@@ -13,7 +13,7 @@ const camelCaseToSentence = (camelCase) => {
   return result.charAt(0).toUpperCase() + result.slice(1); // capitalize the first letter - as an example.
 }
 
-const USER_FRAMENT = `
+const PRIVILEGE_FRAMENT = `
   fragment PrivilegeParts on Privilege {
     id
     name
@@ -25,13 +25,13 @@ const USER_FRAMENT = `
   }
 `;
 
-const GET_USERS = gql`
+const GET_PRIVILEGES = gql`
   {
     privileges {
       ...PrivilegeParts
     }
   }
-  ${USER_FRAMENT}
+  ${PRIVILEGE_FRAMENT}
 `;
 
 const ACTION_TYPES = gql`
@@ -53,26 +53,39 @@ const ACTION_TYPES = gql`
   }
 `;
 
-const CREATE_USER = gql`
-${USER_FRAMENT}
+const CREATE_PRIVILEGE = gql`
+${PRIVILEGE_FRAMENT}
 mutation (
     $name: String!
     $actionTypes: [String!]!
+    $privilegesToConnect: [PrivilegeWhereUniqueInput!]
 ) {
-  createPrivilege(data: { name: $name, actionTypes: { set: $actionTypes } }) {
+  createPrivilege(data: { 
+    name: $name,
+    actionTypes: { set: $actionTypes },
+    privileges: { connect: $privilegesToConnect }
+  }) {
     ...PrivilegeParts
   }
 }
 `;
 
-const UPDATE_USER = gql`
-${USER_FRAMENT}
+const UPDATE_PRIVILEGE = gql`
+${PRIVILEGE_FRAMENT}
 mutation (
     $name: String!
     $actionTypes: [String!]!
     $privilegeId: ID!
+    $privilegesToConnect: [PrivilegeWhereUniqueInput!]
+    $privilegesToDisconnect: [PrivilegeWhereUniqueInput!]
 ) {
-  updatePrivilege(data: { name: $name, actionTypes: { set: $actionTypes } }, where: { id: $privilegeId }) {
+  updatePrivilege(data: { 
+    name: $name,
+    actionTypes: { 
+      set: $actionTypes 
+    },
+    privileges: { connect: $privilegesToConnect, disconnect: $privilegesToDisconnect}
+  } where: { id: $privilegeId }) {
     ...PrivilegeParts
   }
 }
@@ -81,22 +94,26 @@ mutation (
 const PrivilegesQueriesComposed = adopt({
   createPrivilege: ({ render }) => <Mutation
     update={(cache, { data: { createPrivilege } }) => {
-      const { privileges } = cache.readQuery({ query: GET_USERS });
+      const { privileges } = cache.readQuery({ query: GET_PRIVILEGES });
 
       cache.writeQuery({
-        query: GET_USERS,
-        data: { privileges: privileges.concat(createPrivilege)}
+        query: GET_PRIVILEGES,
+        data: { privileges: [
+          ...privileges, 
+          ...createPrivilege.privileges.filter(privilege => privileges.some(({ id }) => privilege.id !== id)), 
+          createPrivilege
+        ]}
       });
     }}
-    mutation={CREATE_USER}
+    mutation={CREATE_PRIVILEGE}
   >
     {(data) => render(data)}
   </Mutation>,
   updatePrivilege: ({ render }) => <Mutation
     update={(cache, { data: { updatePrivilege } }) => {
-      const { privileges } = cache.readQuery({ query: GET_USERS });
+      const { privileges } = cache.readQuery({ query: GET_PRIVILEGES });
       cache.writeQuery({
-        query: GET_USERS,
+        query: GET_PRIVILEGES,
         data: { privileges: privileges.map((privilege) => {
           if(privilege.id === updatePrivilege.id) {
             return updatePrivilege;
@@ -106,15 +123,15 @@ const PrivilegesQueriesComposed = adopt({
         })}
       });
     }}
-    mutation={UPDATE_USER}
+    mutation={UPDATE_PRIVILEGE}
   >
     {(data) => render(data)}
   </Mutation>,
   deletePrivilege: ({ render }) => <Mutation
     update={(cache, { data: { deletePrivilege } }) => {
-      const { privileges } = cache.readQuery({ query: GET_USERS });
+      const { privileges } = cache.readQuery({ query: GET_PRIVILEGES });
       cache.writeQuery({
-        query: GET_USERS,
+        query: GET_PRIVILEGES,
         data: { privileges: privileges.filter(privilege => privilege.id !== deletePrivilege.id) }
       });
     }}
@@ -132,7 +149,7 @@ const PrivilegesQueriesComposed = adopt({
   </Mutation>,
   // updatePrivilege
   privilegesQueryRes: ({ render }) => <Query 
-    query={GET_USERS}
+    query={GET_PRIVILEGES}
   >
     {(data) => render(data)}
   </Query>,
@@ -173,9 +190,9 @@ class Privileges extends Component {
       updatePrivilege
     }) => {
 
-      if (privilegesLoading || actionTypesLoading) return 'Loading...';
+      if (privilegesLoading || actionTypesLoading || privilegesLoading) return 'Loading...';
 
-      if (privilegesError || actionTypesError) return 'Error...';
+      if (privilegesError || actionTypesError || privilegesError) return 'Error...';
 
       const {
         privileges
@@ -215,7 +232,11 @@ class Privileges extends Component {
                   disabled={!privilegeInState} 
                   style={{ marginLeft: 10 }}
                   type="primary"
-                  onClick={() => updatePrivilege({ variables: { privilegeId: privilege.id, ...privilege, ...privilegeInState } }).then(() => {
+                  onClick={() => updatePrivilege({ variables: { 
+                    privilegeId: privilege.id,
+                    ...privilege,
+                    ...privilegeInState
+                  } }).then(() => {
                     const { privilegeFormsData } = this.state;
   
                     this.setState({ privilegeFormsData: privilegeFormsData.filter(privilegeFormData => privilegeFormData.id !== privilege.id) });
@@ -233,7 +254,7 @@ class Privileges extends Component {
               return (<Button 
                 type="primary"
                 onClick={() => {
-                  createPrivilege({ variables: { name: privilegeInState.name, actionTypes: privilegeInState.actionTypes || [] } }).then(() => {
+                  createPrivilege({ variables: { ...({ privileges: [], actionTypes: [] }), ...privilegeInState } }).then(() => {
                   const { privilegeFormsData } = this.state;
 
                   this.setState({ privilegeFormsData: privilegeFormsData.filter(privilegeFormData => privilegeFormData.id !== 'new') });
@@ -272,7 +293,7 @@ class Privileges extends Component {
                 label={'Name:'}
               >
                 <Input 
-                  onChange={({ target: { value }}) => this.onChange(privilege.id, 'name')(value)}
+                  onChange={({ target: { value }}) => this.onChange('name', privilege)(value)}
                   defaultValue={privilege.name}
                   prefix={
                     <Icon 
@@ -290,7 +311,7 @@ class Privileges extends Component {
                   style={{ width: 300 }} 
                   mode="multiple" 
                   placeholder="Please select favourite colors"
-                  onChange={this.onChange(privilege.id, 'actionTypes')}
+                  onChange={this.onChange('actionTypes', privilege)}
                 >
                   {[...queriesTypes, ...mutationTypes].map(({ name }) => 
                   <Option 
@@ -301,27 +322,102 @@ class Privileges extends Component {
                   </Option>)}
                 </Select>
               </FormItem>
+              <FormItem
+                label={'Roles'}
+              >
+                <Select
+                  value={((privilegeInState || privilege).privileges || []).map(({ id }) => id)}
+                  style={{ width: 300 }} 
+                  mode="multiple" 
+                  placeholder="Please select favourite colors"
+                  onChange={(value) => this.onChange('privileges', privilege)(privileges.filter(({id}) => value.includes(id)))}
+                >
+                  {privileges.filter(({ id }) => id !== privilege.id).map((privilege) => 
+                  <Option 
+                    key={privilege.id}
+                    value={privilege.id}
+                  >
+                    {privilege.name}
+                  </Option>)}
+                </Select>
+              </FormItem>
             </Form>
           );
           }
-        }
+        }       
         dataSource={privilegesTableData}
       />
     }}
     </PrivilegesQueriesComposed>;
   }
 
-  onChange = (privilegeId, fieldName) => (value) => {
+  onChange = (fieldName, privilege) => (value) => {
     const { privilegeFormsData } = this.state;
 
-    const existingPrivilegeFormData = privilegeFormsData.find(({ id }) => privilegeId === id);
+    if (fieldName === 'privileges') {
+      this.handlePrivilegesChange(privilegeFormsData, value, privilege);
+      return;
+    };
+    const existingPrivilegeFormData = privilegeFormsData.find(({ id }) => privilege.id === id);
+    console.log(existingPrivilegeFormData);
     if (!existingPrivilegeFormData) {
-      this.setState({ privilegeFormsData: [...privilegeFormsData, { id: privilegeId, [fieldName]: value }] });
+      this.setState({ privilegeFormsData: [{...(privilege || {}), [fieldName]: value }] });
     } else {
       this.setState({ 
         privilegeFormsData: [...privilegeFormsData.map(privilegeFormData => {
           if(privilegeFormData) {
-            return {...privilegeFormData, [fieldName]: value}
+            return {...(privilege || {}), ...privilegeFormData, [fieldName]: value}
+          }
+
+          return privilegeFormsData;
+        })]
+      });
+    }
+  }
+
+  handlePrivilegesChange(privilegeFormsData, newPrivileges, privilege) {
+
+    const privilegePrivileges = (privilege && privilege.privileges) || [];
+
+    const {
+      privilegesToConnect,
+      privilegesToDisconnect
+    } = {
+      privilegesToConnect: newPrivileges
+        .map(({ id }) => id)
+        .filter(privilegeId => !privilegePrivileges
+        .some(({ id }) => id !== privilegeId ))
+        .map((id) => ({ id })),
+      privilegesToDisconnect: privilegePrivileges
+        .filter(({ id }) => 
+          !newPrivileges.map(({ id }) => id)
+            .some(id => (privilegePrivileges
+              .map(({ id }) => id).includes(id)
+            )
+        ))
+        .map(({ id }) => ({ id }))
+    };
+
+    const existingPrivilegeFormData = privilegeFormsData.find(({ id }) => privilege.id === id);
+    if (!existingPrivilegeFormData) {
+      this.setState({ privilegeFormsData: [
+        ...privilegeFormsData, { 
+          ...(privilege || {}),
+          privilegesToConnect,
+          privilegesToDisconnect,
+          privileges: newPrivileges
+        }] });
+    } else {
+      this.setState({ 
+        privilegeFormsData: [...privilegeFormsData.map(privilegeFormData => {
+          if(privilegeFormData) {
+            return {
+              ...(privilege || {}),
+              ...privilegeFormData,
+              privilegesToConnect,
+              privilegesToDisconnect,
+              privileges: newPrivileges
+            }
           }
 
           return privilegeFormsData;
