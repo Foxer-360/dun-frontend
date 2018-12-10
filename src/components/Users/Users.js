@@ -312,9 +312,10 @@ class Users extends Component {
               <FormItem
                 label={'Name:'}
               >
+                {console.log(user)}
                 <Input 
                   onChange={({ target: { value }}) => this.onChange('name', user)(value)}
-                  defaultValue={user.name}
+                  defaultValue={(user.id !== 'new' && user.name) || ""}
                   prefix={
                     <Icon 
                       type="user" 
@@ -330,7 +331,7 @@ class Users extends Component {
                   value={(userInState || user).actionTypes}
                   style={{ width: 300 }} 
                   mode="multiple" 
-                  placeholder="Please select favourite colors"
+                  placeholder="Please select actions"
                   onChange={this.onChange('actionTypes', user)}
                 >
                   {[...queriesTypes, ...mutationTypes].map(({ name }) => 
@@ -349,7 +350,7 @@ class Users extends Component {
                   value={((userInState || user).privileges || []).map(({ id }) => id)}
                   style={{ width: 300 }} 
                   mode="multiple" 
-                  placeholder="Please select favourite colors"
+                  placeholder="Please select roles"
                   onChange={(value) => this.onChange('privileges', user)(privileges.filter(({id}) => value.includes(id)))}
                 >
                   {privileges.map((privilege) => 
