@@ -34,6 +34,15 @@ const GET_USERS = gql`
   ${USER_FRAMENT}
 `;
 
+const GET_PRIVILEGES = gql`
+  {
+    privileges {
+      id
+      name
+    }
+  }
+`;
+
 const ACTION_TYPES = gql`
   {
     __schema {
@@ -71,8 +80,16 @@ mutation (
     $name: String!
     $actionTypes: [String!]!
     $userId: ID!
+    $privilegesToConnect: [PrivilegeWhereUniqueInput!]
+    $privilegesToDisconnect: [PrivilegeWhereUniqueInput!]
 ) {
-  updateUser(data: { name: $name, actionTypes: { set: $actionTypes } }, where: { id: $userId }) {
+  updateUser(data: { 
+    name: $name,
+    actionTypes: { 
+      set: $actionTypes 
+    },
+    privileges: { connect: $privilegesToConnect, disconnect: $privilegesToDisconnect}
+  } where: { id: $userId }) {
     ...UserParts
   }
 }
@@ -140,6 +157,11 @@ const UsersQueriesComposed = adopt({
     query={ACTION_TYPES}
   >
     {(data) => render(data)}
+  </Query>,
+  privilegesQueryRes: ({ render }) => <Query
+    query={GET_PRIVILEGES}
+  >
+    {(data) => render(data)}
   </Query>
 });
 
@@ -168,18 +190,27 @@ class Users extends Component {
         error: actionTypesError,
         data: actionTypesData
       },
+      privilegesQueryRes: {
+        loading: privilegesLoading,
+        error: privilegesError,
+        data: privilegesData
+      },
       deleteUser,
       createUser,
       updateUser
     }) => {
 
-      if (usersLoading || actionTypesLoading) return 'Loading...';
+      if (usersLoading || actionTypesLoading || privilegesLoading) return 'Loading...';
 
-      if (usersError || actionTypesError) return 'Error...';
+      if (usersError || actionTypesError || privilegesError) return 'Error...';
 
       const {
         users
       } = usersData;
+
+      const {
+        privileges
+      } = privilegesData;
 
       const {
         __schema: {
@@ -290,7 +321,7 @@ class Users extends Component {
                   style={{ width: 300 }} 
                   mode="multiple" 
                   placeholder="Please select favourite colors"
-                  onChange={this.onChange(user.id, 'actionTypes')}
+                  onChange={this.onChange('actionTypes', user)}
                 >
                   {[...queriesTypes, ...mutationTypes].map(({ name }) => 
                   <Option 
@@ -301,27 +332,102 @@ class Users extends Component {
                   </Option>)}
                 </Select>
               </FormItem>
+              <FormItem
+                label={'Roles'}
+              >
+                <Select
+                  value={(userInState || user).privileges.map(({ id }) => id)}
+                  style={{ width: 300 }} 
+                  mode="multiple" 
+                  placeholder="Please select favourite colors"
+                  onChange={(value) => this.onChange('privileges', user)(privileges.filter(({id}) => value.includes(id)))}
+                >
+                  {privileges.map((privilege) => 
+                  <Option 
+                    key={privilege.id}
+                    value={privilege.id}
+                  >
+                    {privilege.name}
+                  </Option>)}
+                </Select>
+              </FormItem>
             </Form>
           );
           }
-        }
+        }       
         dataSource={usersTableData}
       />
     }}
     </UsersQueriesComposed>;
   }
 
-  onChange = (userId, fieldName) => (value) => {
+  onChange = (fieldName, user) => (value) => {
     const { userFormsData } = this.state;
-
-    const existingUserFormData = userFormsData.find(({ id }) => userId === id);
+    console.log(value);
+    if (fieldName === 'privileges') {
+      this.handlePrivilegesChange(userFormsData, value, user);
+      return;
+    };
+    const existingUserFormData = userFormsData.find(({ id }) => user.id === id);
+    console.log(existingUserFormData);
     if (!existingUserFormData) {
-      this.setState({ userFormsData: [...userFormsData, { id: userId, [fieldName]: value }] });
+      this.setState({ userFormsData: [{...(user || {}), [fieldName]: value }] });
     } else {
       this.setState({ 
         userFormsData: [...userFormsData.map(userFormData => {
           if(userFormData) {
-            return {...userFormData, [fieldName]: value}
+            return {...(user || {}), ...userFormData, [fieldName]: value}
+          }
+
+          return userFormsData;
+        })]
+      });
+    }
+  }
+
+  handlePrivilegesChange(userFormsData, newPrivileges, user) {
+
+    const {
+      privilegesToConnect,
+      privilegesToDisconnect
+    } = {
+      privilegesToConnect: newPrivileges
+        .map(({ id }) => id)
+        .filter(privilegeId => !user.privileges
+        .some(({ id }) => id !== privilegeId ))
+        .map((id) => ({ id })),
+      privilegesToDisconnect: user.privileges
+        .filter(({ id }) => 
+          !newPrivileges.map(({ id }) => id)
+            .some(id => user.privileges
+              .map(({ id }) => id)
+            )
+        )
+        .map(({ id }) => ({ id }))
+    };
+    
+    console.log(newPrivileges);
+
+    const existingUserFormData = userFormsData.find(({ id }) => user.id === id);
+    if (!existingUserFormData) {
+      this.setState({ userFormsData: [
+        ...userFormsData, { 
+          ...(user || {}),
+          privilegesToConnect,
+          privilegesToDisconnect,
+          privileges: newPrivileges
+        }] });
+    } else {
+      this.setState({ 
+        userFormsData: [...userFormsData.map(userFormData => {
+          if(userFormData) {
+            return {
+              ...(user || {}),
+              ...userFormData,
+              privilegesToConnect,
+              privilegesToDisconnect,
+              privileges: newPrivileges
+            }
           }
 
           return userFormsData;
