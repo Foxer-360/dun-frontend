@@ -16,7 +16,14 @@ import {
   Privileges,
 } from './components';
 
-import { Layout, Menu, Icon } from 'antd';
+import { 
+  Layout, 
+  Menu, 
+  Icon,
+  Button,
+  Row,
+  Col
+} from 'antd';
 
 // @TODO just for mock purposes, so it's necessary to change it to real backend at right time ;-)
 const httpLink = new HttpLink({ uri: 'http://localhost:4000' })
@@ -93,23 +100,20 @@ class App extends Component {
           </Sider>
           <Layout>
             <Header style={{ background: '#fff', padding: 0 }}>
+            <Row type="flex" justify="end">
+              <Col span={2}>
+                {auth.isAuthenticated() ?
+                    <Button type={'primary'} onClick={() => auth.logout()}  >Log Out</Button>
+                  : <Button type={'primary'} onClick={() => auth.login()} >Login</Button>
+                }
+              </Col>
+            </Row>
               <Icon
                 className="trigger"
                 type={this.state.collapsed ? 'menu-unfold' : 'menu-fold'}
                 onClick={this.toggle}
               />
-              {auth.isAuthenticated() ?
-                <React.Fragment>
-                  <button onClick={() => auth.logout()} className='f6 link dim br1 ba ph3 pv2 fr mb2 dib black' >Log Out</button>
-                <Link
-                    to='/create'
-                    className='f6 link dim br1 ba ph3 pv2 fr mb2 dib black'
-                >
-                  + Create Draft
-                </Link>
-                </React.Fragment>
-                : <button className='f6 link dim br1 ba ph3 pv2 fr mb2 dib black'  onClick={() => auth.login()} >Login</button>
-              }
+
             </Header>
             <Content style={{ margin: '24px 16px', padding: 24, background: '#fff', minHeight: 280 }}>
                   <Route exact path="/" component={Users} />

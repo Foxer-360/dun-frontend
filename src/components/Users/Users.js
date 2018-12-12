@@ -1,8 +1,19 @@
 import React, { Component } from 'react';
-import { Table, Button, Input, Icon, Form, Select } from 'antd';
+import { 
+  Table,
+  Button,
+  Input,
+  Icon,
+  Form,
+  Select,
+  Card,
+  Avatar
+} from 'antd';
 import { adopt } from 'react-adopt';
 import { Query, Mutation } from 'react-apollo';
 import gql from 'graphql-tag';
+
+const { Meta } = Card;
 
 const { Option } = Select;
 
@@ -22,6 +33,7 @@ const USER_FRAMENT = `
       name
     }
     actionTypes
+    avatar
   }
 `;
 
@@ -312,7 +324,6 @@ class Users extends Component {
               <FormItem
                 label={'Name:'}
               >
-                {console.log(user)}
                 <Input 
                   onChange={({ target: { value }}) => this.onChange('name', user)(value)}
                   defaultValue={(user.id !== 'new' && user.name) || ""}
@@ -374,13 +385,13 @@ class Users extends Component {
 
   onChange = (fieldName, user) => (value) => {
     const { userFormsData } = this.state;
-    console.log(value);
+
     if (fieldName === 'privileges') {
       this.handlePrivilegesChange(userFormsData, value, user);
       return;
     };
     const existingUserFormData = userFormsData.find(({ id }) => user.id === id);
-    console.log(existingUserFormData);
+
     if (!existingUserFormData) {
       this.setState({ userFormsData: [{...(user || {}), [fieldName]: value }] });
     } else {
@@ -418,12 +429,6 @@ class Users extends Component {
         ))
         .map(({ id }) => ({ id }))
     };
-    console.log(userFormsData);
-    console.log(JSON.stringify({
-      privilegesToConnect,
-      privilegesToDisconnect,
-      newPrivileges
-    }));
 
     const existingUserFormData = userFormsData.find(({ id }) => user.id === id);
     if (!existingUserFormData) {
