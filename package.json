@@ -8,6 +8,7 @@
     "apollo-link-context": "^1.0.10",
     "auth0-lock": "^11.12.1",
     "graphql": "^14.0.2",
+    "graphql-tag": "^2.10.0",
     "react": "^16.6.3",
     "react-adopt": "^0.6.0",
     "react-apollo": "^2.3.2",
@@ -31,6 +32,12 @@
     "not op_mini all"
   ],
   "devDependencies": {
-    "create-react-component-folder": "^0.1.26"
+    "babel-eslint": "^8.2.6",
+    "create-react-component-folder": "^0.1.26",
+    "eslint": "^5.10.0",
+    "eslint-config-airbnb": "^17.1.0",
+    "eslint-plugin-import": "^2.14.0",
+    "eslint-plugin-jsx-a11y": "^6.1.2",
+    "eslint-plugin-react": "^7.11.1"
   }
 }
