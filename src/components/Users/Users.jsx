@@ -23,14 +23,17 @@ class Users extends Component {
     return (
       <UsersQueriesComposed>
         {({
-          users,
-          privileges,
-          queriesTypes,
-          mutationTypes,
-          createUser,
-          updateUser,
-          deleteUser,
-        }) => (
+          data: {
+            users,
+            privileges,
+            queriesTypes,
+            mutationTypes,
+            createUser,
+            updateUser,
+            deleteUser,
+          },
+        }) => (<>
+          {console.log(users)}
           <Table
             columns={this.getUsersTableColumns(
               createUser,
@@ -48,8 +51,9 @@ class Users extends Component {
                   onChange={this.onChange}
                 />);
             }}
-            dataSource={this.getUsersTableData(users)}
+            dataSource={Users.getUsersTableData(users)}
           />
+        </>
         )}
       </UsersQueriesComposed>
     );

@@ -172,7 +172,7 @@ export default adopt({
       {data => render(data)}
     </Query>
   ),
-  finalDataComposition: ({
+  data: ({
     render,
     usersQueryRes: {
       loading: usersLoading,

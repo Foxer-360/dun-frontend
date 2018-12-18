@@ -11,6 +11,8 @@
     "apollo-link-context": "^1.0.10",
     "apollo-link-http": "^1.5.9",
     "auth0-lock": "^11.12.1",
+    "babel-eslint": "9.0.0",
+    "eslint": "5.6.0",
     "graphql": "^14.0.2",
     "graphql-tag": "^2.10.0",
     "prop-types": "^15.6.2",

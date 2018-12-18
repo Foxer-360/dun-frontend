@@ -161,7 +161,7 @@ export default adopt({
       {data => render(data)}
     </Query>
   ),
-  finalDataComposition: ({
+  data: ({
     privilegesQueryRes: {
       loading: privilegesLoading,
       error: privilegesError,
@@ -180,7 +180,7 @@ export default adopt({
     if (privilegesLoading || actionTypesLoading || privilegesLoading) return 'Loading...';
 
     if (privilegesError || actionTypesError || privilegesError) return 'Error...';
-
+    console.log(privilegesData);
     const {
       privileges,
     } = privilegesData;
@@ -204,5 +204,5 @@ export default adopt({
       updatePrivilege,
       deletePrivilege,
     });
-  }
+  },
 });

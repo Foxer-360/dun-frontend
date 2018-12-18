@@ -27,7 +27,9 @@ const propTypes = {
   privileges: arrayOf(privilegeShape).isRequired,
   privilege: privilegeShape.isRequired,
   privilegeInState: privilegeShape.isRequired,
-  actions: arrayOf(privilegeShape).isRequired,
+  actions: arrayOf(shape({
+    name: string.isRequired,
+  })).isRequired,
   onChange: func.isRequired,
 };
 

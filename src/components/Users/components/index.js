@@ -1,7 +1,7 @@
 import UserEditationForm from './UserEditationForm';
 import UsersQueriesComposed from './UsersQueriesComposed';
 
-export default {
+export {
   UserEditationForm,
   UsersQueriesComposed,
 };
