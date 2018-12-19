@@ -12,7 +12,9 @@ import {
   Select,
 } from 'antd';
 
-import camelCaseToSentence from '../../../helpers';
+import {
+  camelCaseToSentence,
+} from '../../../helpers';
 
 const { Option } = Select;
 
@@ -26,7 +28,7 @@ const privilegeShape = shape({
 const propTypes = {
   privileges: arrayOf(privilegeShape).isRequired,
   privilege: privilegeShape.isRequired,
-  privilegeInState: privilegeShape.isRequired,
+  privilegeInState: privilegeShape,
   actions: arrayOf(shape({
     name: string.isRequired,
   })).isRequired,

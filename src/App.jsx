@@ -1,5 +1,10 @@
 import React, { Component } from 'react';
-import { BrowserRouter as Router, Route, Link } from 'react-router-dom';
+import {
+  BrowserRouter as Router,
+  Route,
+  Link,
+  Redirect,
+} from 'react-router-dom';
 import { ApolloProvider } from 'react-apollo';
 import { ApolloClient } from 'apollo-client';
 import { HttpLink } from 'apollo-link-http';
@@ -7,6 +12,7 @@ import { ApolloLink } from 'apollo-link';
 import { InMemoryCache } from 'apollo-cache-inmemory';
 import { setContext } from 'apollo-link-context';
 import {
+  Avatar,
   Layout,
   Menu,
   Icon,
@@ -57,6 +63,18 @@ const handleAuthentication = (nextState) => {
 
 const { Header, Sider, Content } = Layout;
 
+const PrivateRoute = ({ component: InjectedComponent, ...rest }) => (
+  <Route
+    {...rest}
+    render={props => (
+      auth.isAuthenticated() === true
+        ? <InjectedComponent {...props} />
+        : <Redirect to="/login" />
+    )
+    }
+  />
+);
+
 
 class App extends Component {
   state = {
@@ -83,28 +101,30 @@ class App extends Component {
               collapsed={collapsed}
             >
               <div className="logo" />
-              <Menu
-                theme="dark"
-                mode="inline"
-                defaultSelectedKeys={['/users']}
-              >
-                <Menu.Item key="/users">
-                  <Icon type="user" />
-                  Users
-                  <Link to="/users">
-                    <Icon type="home" />
+              {auth.isAuthenticated() && (
+                <Menu
+                  theme="dark"
+                  mode="inline"
+                  defaultSelectedKeys={['/users']}
+                >
+                  <Menu.Item key="/users">
+                    <Icon type="user" />
                     Users
-                  </Link>
-                </Menu.Item>
-                <Menu.Item key="/privileges">
-                  <Icon type="file-protect" />
-                  Privileges
-                  <Link to="/privileges">
-                    <Icon type="home" />
+                    <Link to="/users">
+                      <Icon type="home" />
+                      Users
+                    </Link>
+                  </Menu.Item>
+                  <Menu.Item key="/privileges">
+                    <Icon type="file-protect" />
                     Privileges
-                  </Link>
-                </Menu.Item>
-              </Menu>
+                    <Link to="/privileges">
+                      <Icon type="home" />
+                      Privileges
+                    </Link>
+                  </Menu.Item>
+                </Menu>)
+              }
             </Sider>
             <Layout>
               <Header style={{ background: '#fff', padding: 0 }}>
@@ -116,20 +136,15 @@ class App extends Component {
                     }
                   </Col>
                 </Row>
-                <Icon
-                  className="trigger"
-                  type={collapsed ? 'menu-unfold' : 'menu-fold'}
-                  onClick={this.toggle}
-                />
-
               </Header>
               <Content style={{
                 margin: '24px 16px', padding: 24, background: '#fff', minHeight: 280,
               }}
               >
-                <Route exact path="/" component={Users} />
-                <Route exact path="/users" component={Users} />
-                <Route exact path="/privileges" component={Privileges} />
+                <Route exact path="/login" component={() => <div />} />
+                <PrivateRoute exact path="/users" component={Users} />
+                <PrivateRoute exact path="/" component={Users} />
+                <PrivateRoute exact path="/privileges" component={Privileges} />
                 <Route
                   path="/callback"
                   render={(props) => {

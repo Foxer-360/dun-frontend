@@ -7,7 +7,7 @@ import {
   Select,
 } from 'antd';
 
-import camelCaseToSentence from '../../../helpers';
+import { camelCaseToSentence } from '../../../helpers';
 
 const { Option } = Select;
 
@@ -26,7 +26,7 @@ function getPropTyping({
   return {
     users: arrayOf(user).isRequired,
     user: user.isRequired,
-    userInState: user.isRequired,
+    userInState: user,
     actions: arrayOf(user).isRequired,
     onChange: func,
   };
