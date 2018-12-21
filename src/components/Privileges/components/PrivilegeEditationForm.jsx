@@ -82,7 +82,12 @@ export default class PrivilegeEditationForm extends Component {
             ))}
           </Select>
         </FormItem>
-        <FormItem
+        {
+          /**
+           * Commented for know, will be uncommented when i will start to resolving priveleges trees on Authorization server
+           */
+       
+          /* <FormItem
           label="Roles"
         >
           <Select
@@ -101,7 +106,7 @@ export default class PrivilegeEditationForm extends Component {
               </Option>
             ))}
           </Select>
-        </FormItem>
+        </FormItem> */}
       </Form>
     );
   }
