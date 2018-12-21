@@ -24,10 +24,12 @@ function getPropTyping({
     id: string,
   });
   return {
+    actions: arrayOf(shape({
+      name: string.isRequired,
+    })).isRequired,
     users: arrayOf(user).isRequired,
     user: user.isRequired,
     userInState: user,
-    actions: arrayOf(user).isRequired,
     onChange: func,
   };
 }
@@ -36,10 +38,9 @@ function getPropTyping({
 export default class UserEditationForm extends Component {
   render() {
     const {
+      actions,
       user,
       userInState,
-      queriesTypes,
-      mutationTypes,
       privileges,
       onChange,
     } = this.props;
@@ -70,7 +71,7 @@ export default class UserEditationForm extends Component {
             placeholder="Please select actions"
             onChange={onChange('actionTypes', user)}
           >
-            {[...queriesTypes, ...mutationTypes].map(({ name }) => (
+            {actions.map(({ name }) => (
               <Option
                 key={name}
                 value={name}

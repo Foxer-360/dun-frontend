@@ -33,7 +33,6 @@ class Users extends Component {
             deleteUser,
           },
         }) => (<>
-          {console.log(users)}
           <Table
             columns={this.getUsersTableColumns(
               createUser,
@@ -47,7 +46,7 @@ class Users extends Component {
                   userInState={userInState}
                   user={user}
                   privileges={privileges}
-                  availableActions={[...queriesTypes, ...mutationTypes]}
+                  actions={[...queriesTypes, ...mutationTypes]}
                   onChange={this.onChange}
                 />);
             }}

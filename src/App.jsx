@@ -12,7 +12,6 @@ import { ApolloLink } from 'apollo-link';
 import { InMemoryCache } from 'apollo-cache-inmemory';
 import { setContext } from 'apollo-link-context';
 import {
-  Avatar,
   Layout,
   Menu,
   Icon,
