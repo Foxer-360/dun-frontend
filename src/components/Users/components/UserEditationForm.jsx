@@ -71,12 +71,12 @@ export default class UserEditationForm extends Component {
             placeholder="Please select actions"
             onChange={onChange('actionTypes', user)}
           >
-            {actions.map(({ name }) => (
+            {actions.map(action => (
               <Option
-                key={name}
-                value={name}
+                key={action}
+                value={action}
               >
-                {camelCaseToSentence(name)}
+                {camelCaseToSentence(action)}
               </Option>
             ))}
           </Select>

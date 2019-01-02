@@ -37,19 +37,9 @@ const GET_PRIVILEGES = gql`
 
 const ACTION_TYPES = gql`
   {
-    __schema {
-      queryType {
-        name
-        fields {
-          name
-        }
-      }
-      mutationType {
-        name
-        fields {
-          name
-        }
-      }
+    actionTypes {
+      authorizationApiTypes
+      externalApiTypes
     }
   }
 `;
@@ -205,21 +195,19 @@ export default adopt({
     } = privilegesData;
 
     const {
-      __schema: {
-        queryType: {
-          fields: queriesTypes,
-        },
-        mutationType: {
-          fields: mutationTypes,
-        },
+      actionTypes: {
+        authorizationApiTypes,
+        externalApiTypes,
       },
     } = actionTypesData;
 
     return render({
       users,
       privileges,
-      queriesTypes,
-      mutationTypes,
+      actionTypes: [
+        ...authorizationApiTypes,
+        ...externalApiTypes,
+      ],
       createUser,
       updateUser,
       deleteUser,

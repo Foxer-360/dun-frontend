@@ -26,8 +26,7 @@ class Users extends Component {
           data: {
             users,
             privileges,
-            queriesTypes,
-            mutationTypes,
+            actionTypes,
             createUser,
             updateUser,
             deleteUser,
@@ -46,7 +45,7 @@ class Users extends Component {
                   userInState={userInState}
                   user={user}
                   privileges={privileges}
-                  actions={[...queriesTypes, ...mutationTypes]}
+                  actions={actionTypes}
                   onChange={this.onChange}
                 />);
             }}

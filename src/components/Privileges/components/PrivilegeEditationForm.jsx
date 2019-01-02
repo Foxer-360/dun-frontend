@@ -26,9 +26,9 @@ const privilegeShape = shape({
 });
 
 const propTypes = {
-  privileges: arrayOf(privilegeShape).isRequired,
+  // privileges: arrayOf(privilegeShape).isRequired,
   privilege: privilegeShape.isRequired,
-  privilegeInState: privilegeShape,
+  // privilegeInState: privilegeShape,
   actions: arrayOf(shape({
     name: string.isRequired,
   })).isRequired,
@@ -38,7 +38,7 @@ const propTypes = {
 export default class PrivilegeEditationForm extends Component {
   render() {
     const {
-      privileges,
+      // privileges,
       privilege,
       privilegeInState,
       actions,
@@ -72,12 +72,12 @@ export default class PrivilegeEditationForm extends Component {
             placeholder="Please select favourite colors"
             onChange={onChange('actionTypes', privilege)}
           >
-            {actions.map(({ name }) => (
+            {actions.map(action => (
               <Option
-                key={name}
-                value={name}
+                key={action}
+                value={action}
               >
-                {camelCaseToSentence(name)}
+                {camelCaseToSentence(action)}
               </Option>
             ))}
           </Select>

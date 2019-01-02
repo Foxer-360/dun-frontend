@@ -24,8 +24,7 @@ class Privileges extends Component {
         {({
           data: {
             privileges,
-            queriesTypes,
-            mutationTypes,
+            actionTypes,
             createPrivilege,
             updatePrivilege,
             deletePrivilege,
@@ -45,7 +44,7 @@ class Privileges extends Component {
                   privileges={privileges}
                   privilege={privilege}
                   privilegeInState={privilegeInState}
-                  actions={[...queriesTypes, ...mutationTypes]}
+                  actions={actionTypes}
                   onChange={this.onChange}
                 />
               );

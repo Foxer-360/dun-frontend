@@ -30,8 +30,7 @@ import {
   Privileges,
 } from './components';
 
-// @TODO just for mock purposes, so it's necessary to change it to real backend at right time ;-)
-const httpLink = new HttpLink({ uri: 'http://localhost:4000' });
+const httpLink = new HttpLink({ uri: 'http://localhost:4001' });
 
 const authLink = setContext((_, { headers }) => {
   // get the authentication token from local storage if it exists
