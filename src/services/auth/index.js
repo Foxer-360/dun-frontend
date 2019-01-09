@@ -1,6 +1,6 @@
 import Auth0Lock from 'auth0-lock';
 import gql from 'graphql-tag';
-import { AUTH_CONFIG } from './auth0-variables';
+import AUTH_CONFIG from './auth0-variables';
 
 const AUTHENTICATE = gql`
     mutation authenticate($idToken: String!) {
