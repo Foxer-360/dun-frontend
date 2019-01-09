@@ -30,7 +30,7 @@ import {
   Privileges,
 } from './components';
 
-const httpLink = new HttpLink({ uri: 'http://localhost:4001' });
+const httpLink = new HttpLink({ uri: process.env.REACT_APP_AUTHORIZATION_API_ADDRESS });
 
 const authLink = setContext((_, { headers }) => {
   // get the authentication token from local storage if it exists
