@@ -6,7 +6,7 @@ const AUTHENTICATE = gql`
     mutation authenticate($idToken: String!) {
         authenticate(idToken: $idToken) {
             id
-            name
+            username
             email
         }
     }
@@ -40,6 +40,10 @@ class Auth {
   login() {
     // Call the show method to display the widget.
     console.log('lock', this.isAuthenticated());
+    this.lock.show();
+  }
+
+  showLogin() {
     this.lock.show();
   }
 

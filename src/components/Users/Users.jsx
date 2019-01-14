@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import {
   Table,
   Button,
+  message,
 } from 'antd';
 
 import {
@@ -60,7 +61,7 @@ class Users extends Component {
   getUsersTableColumns = (createUser, updateUser, deleteUser) => {
     const { userFormsData } = this.state;
     return [
-      { title: 'Name', dataIndex: 'name', key: 'name' },
+      { title: 'Username', dataIndex: 'username', key: 'username' },
       {
         title: 'Action',
         dataIndex: '',
@@ -117,7 +118,14 @@ class Users extends Component {
                   }).then(() => this.setState({
                     userFormsData: userFormsData
                       .filter(userFormData => userFormData.id !== 'new'),
-                  }));
+                  })).catch((e) => {
+                    if (e.message.includes('GraphQL error: 400 - ')) {
+                      const errObj = JSON.parse(e.message.replace('GraphQL error: 400 - ', ''));
+                      message.warning(errObj.message, 10);
+                    } else {
+                      message.warning(e.message, 10);
+                    }
+                  });
                 }}
               >
                 Create
@@ -140,7 +148,7 @@ class Users extends Component {
       {
         id: 'new',
         key: 'new',
-        name: 'Create new user',
+        username: 'Create new user',
       },
     ]);
   }

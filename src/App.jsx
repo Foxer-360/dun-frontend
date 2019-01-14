@@ -86,6 +86,12 @@ class App extends Component {
     });
   }
 
+  componentDidMount() {
+    if (!auth.isAuthenticated()) {
+      auth.showLogin();
+    }
+  }
+
   render() {
     const { collapsed } = this.state;
 

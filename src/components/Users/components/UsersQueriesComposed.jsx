@@ -7,7 +7,8 @@ import gql from 'graphql-tag';
 const USER_FRAMENT = `
   fragment UserParts on User {
     id
-    name
+    username
+    email
     privileges {
       id
       name
@@ -47,12 +48,16 @@ const ACTION_TYPES = gql`
 const CREATE_USER = gql`
 ${USER_FRAMENT}
 mutation (
-    $name: String!
+    $username: String!
+    $email: String!
+    $password: String!
     $actionTypes: [String!]!
     $privilegesToConnect: [PrivilegeWhereUniqueInput!]
 ) {
   createUser(data: { 
-    name: $name,
+    username: $username,
+    email: $email,
+    password: $password,
     actionTypes: { set: $actionTypes },
     privileges: { connect: $privilegesToConnect }
   }) {
@@ -64,14 +69,14 @@ mutation (
 const UPDATE_USER = gql`
 ${USER_FRAMENT}
 mutation (
-    $name: String!
+    $username: String!
     $actionTypes: [String!]!
     $userId: ID!
     $privilegesToConnect: [PrivilegeWhereUniqueInput!]
     $privilegesToDisconnect: [PrivilegeWhereUniqueInput!]
 ) {
   updateUser(data: { 
-    name: $name,
+    username: $username,
     actionTypes: { 
       set: $actionTypes 
     },
@@ -131,7 +136,7 @@ export default adopt({
       mutation={
       gql`
         mutation ($userId: ID!) {
-          deleteUser(where: {id: $userId}) {
+          deleteUser(id: $userId) {
             id
           }
         }
