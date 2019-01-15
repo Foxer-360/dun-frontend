@@ -11,6 +11,7 @@ import { HttpLink } from 'apollo-link-http';
 import { ApolloLink } from 'apollo-link';
 import { InMemoryCache } from 'apollo-cache-inmemory';
 import { setContext } from 'apollo-link-context';
+import { onError } from "apollo-link-error";
 import {
   Layout,
   Menu,
@@ -18,6 +19,7 @@ import {
   Button,
   Row,
   Col,
+  message
 } from 'antd';
 
 import Callback from './components/Callback';
@@ -29,6 +31,18 @@ import {
   Users,
   Privileges,
 } from './components';
+
+const errorLink = onError(({ graphQLErrors, networkError }) => {
+  if (graphQLErrors)
+    graphQLErrors.map(({ message: errorMessage, locations, path }) => {
+      console.log(
+        `[GraphQL error]: Message: ${errorMessage}, Location: ${locations}, Path: ${path}`
+      );
+      message.warning(errorMessage, 10);
+
+    });
+  if (networkError) console.log(`[Network error]: ${networkError}`);
+});
 
 const httpLink = new HttpLink({ uri: process.env.REACT_APP_AUTHORIZATION_API_ADDRESS });
 
@@ -47,7 +61,7 @@ const authLink = setContext((_, { headers }) => {
 
 
 const client = new ApolloClient({
-  link: ApolloLink.from([authLink, httpLink]),
+  link: ApolloLink.from([authLink, errorLink, httpLink]),
   cache: new InMemoryCache(),
 });
 

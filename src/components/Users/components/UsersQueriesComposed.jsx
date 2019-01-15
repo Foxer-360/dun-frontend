@@ -189,7 +189,7 @@ export default adopt({
     deleteUser,
   }) => {
     if (usersLoading || actionTypesLoading || privilegesLoading) return 'Loading...';
-    if (usersError || actionTypesError || privilegesError) return 'Error...';
+    if (usersError || actionTypesError || privilegesError) return `${usersError || ''} ${actionTypesError || ''} ${privilegesError || ''}`;
 
     const {
       users,

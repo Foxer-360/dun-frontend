@@ -77,7 +77,8 @@ export default class UserEditationForm extends Component {
             placeholder="Email"
           />
         </FormItem>
-        {user.id === 'new' && 
+        {user.id === 'new' &&
+        (
         <FormItem
           label="Password:"
         >
@@ -90,8 +91,8 @@ export default class UserEditationForm extends Component {
                 style={{ color: 'rgba(0,0,0,.25)' }}
               />)}
             placeholder="Password"
-          /> 
-        </FormItem>}
+          />
+        </FormItem>)}
         <FormItem
           label="Permitted api actions:"
         >
