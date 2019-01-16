@@ -82,7 +82,7 @@ export default class UserEditationForm extends Component {
         <FormItem
           label="Password:"
         >
-          <Input.Password
+          <Input
             onChange={({ target: { value } }) => onChange('password', user)(value)}
             defaultValue={(user.id !== 'new' && user.password) || ''}
             prefix={(
