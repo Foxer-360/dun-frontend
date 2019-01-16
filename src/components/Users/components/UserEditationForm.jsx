@@ -48,11 +48,12 @@ export default class UserEditationForm extends Component {
     return (
       <Form layout="inline" onSubmit={this.handleSubmit}>
         <FormItem
-          label="Name:"
+          label="Username:"
         >
           <Input
-            onChange={({ target: { value } }) => onChange('name', user)(value)}
-            defaultValue={(user.id !== 'new' && user.name) || ''}
+            onChange={({ target: { value } }) => onChange('username', user)(value)}
+            disabled={user.id !== 'new'}
+            defaultValue={(user.id !== 'new' && user.username) || ''}
             prefix={(
               <Icon
                 type="user"
@@ -61,6 +62,37 @@ export default class UserEditationForm extends Component {
             placeholder="Username"
           />
         </FormItem>
+        <FormItem
+          label="Email:"
+        >
+          <Input
+            onChange={({ target: { value } }) => onChange('email', user)(value)}
+            disabled={user.id !== 'new'}
+            defaultValue={(user.id !== 'new' && user.email) || ''}
+            prefix={(
+              <Icon
+                type="user"
+                style={{ color: 'rgba(0,0,0,.25)' }}
+              />)}
+            placeholder="Email"
+          />
+        </FormItem>
+        {user.id === 'new' &&
+        (
+        <FormItem
+          label="Password:"
+        >
+          <Input.Password
+            onChange={({ target: { value } }) => onChange('password', user)(value)}
+            defaultValue={(user.id !== 'new' && user.password) || ''}
+            prefix={(
+              <Icon
+                type="lock"
+                style={{ color: 'rgba(0,0,0,.25)' }}
+              />)}
+            placeholder="Password"
+          />
+        </FormItem>)}
         <FormItem
           label="Permitted api actions:"
         >

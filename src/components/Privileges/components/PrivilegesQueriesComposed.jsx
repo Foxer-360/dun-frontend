@@ -169,7 +169,7 @@ export default adopt({
   }) => {
     if (privilegesLoading || actionTypesLoading || privilegesLoading) return 'Loading...';
 
-    if (privilegesError || actionTypesError || privilegesError) return 'Error...';
+    if (privilegesError || actionTypesError) return `${privilegesError || ''} ${actionTypesError || ''}`;
 
     const {
       privileges,
